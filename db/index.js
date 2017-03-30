@@ -1,5 +1,6 @@
 var mongoose = require('mongoose');
-var mongodbURL = process.env.MONGODB_URI || 'mongodb://legacy:legacy@ds111940.mlab.com:11940/gg-legacy-dev';
+var mongodbURL = process.env.MONGODB_URI || 'mongodb://localhost/orange-to-orange';
+
 mongoose.connect(mongodbURL);
 var Schema = mongoose.Schema;
 var passportLocalMongoose = require('passport-local-mongoose');
@@ -21,8 +22,8 @@ var gameInstanceSchema = new Schema({
   id: Number,
   gameName: {type: String, unique: true },
   password: String,
-  players: Array, 
-  rounds: Array, 
+  players: Array,
+  rounds: Array,
   currentRound: Number,
   gameStage: {type: String, default: 'waiting'}
 });
@@ -38,6 +39,69 @@ userSchema.plugin(passportLocalMongoose);
 var gameInstanceModel = mongoose.model('gameInstanceModel', gameInstanceSchema);
 
 //COMMENT THIS OUT DURING GAME TESTING
+//Clearout database
+var collection = db.collection('gameinstancemodels');
+collection.remove({});
+
+var gameOne = new gameInstanceModel(dummyGames.gameOne)
+
+gameOne.save(function (err, game) {
+	if (err) {
+		console.log('error', err);
+		return
+	} else {
+	// console.log('gameAdded', game);
+	}
+});
+
+
+var gameTwo = new gameInstanceModel(dummyGames.gameTwo)
+
+gameTwo.save(function (err, game) {
+	if (err) {
+		console.log('error', err);
+		return
+	} else {
+	// console.log('gameAdded', game);
+	}
+});
+
+var gameThree = new gameInstanceModel(dummyGames.gameThree)
+
+gameThree.save(function (err, game) {
+	if (err) {
+		console.log('err', err);
+		return
+	} else {
+	// console.log('gameAdded', game);
+	}
+});
+
+var gameFour = new gameInstanceModel(dummyGames.gameFour)
+
+gameFour.save(function (err, game) {
+	if (err) {
+		console.log('err', err);
+		return
+	} else {
+	// console.log('gameAdded', game);
+	}
+});
+
+for (let game in dummyGamePlayThrough) {
+	let newGame = new gameInstanceModel(dummyGamePlayThrough[game]);
+	newGame.save(function (err, game) {
+		if (err) {
+			console.log('err', err);
+			return
+		} else {
+		// console.log('gameAdded', game);
+		}
+	});
+}
+//Comment this code back in to have access to the dummy data on your local machine
+// it was commented out for depoloyment. 
+
 //Clearout database 
 // var collection = db.collection('gameinstancemodels');
 // collection.remove({});

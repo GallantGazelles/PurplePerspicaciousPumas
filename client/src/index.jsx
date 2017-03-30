@@ -18,11 +18,13 @@ class App extends React.Component {
     }
 
     sendToLobby(disconnectTimeOut) {
-      if (disconnectTimeOut) {
-        hashHistory.push('/lobby/:disconnectTimeOut');
-      } else {
+      // console.log(disconnectTimeOut);
+      // if (disconnectTimeOut) {
+      //   hashHistory.push('/lobby/:disconnectTimeOut');
+      // } else {
+        console.log('Sending to lobby');
         hashHistory.push('/lobby');
-      }
+      // }
     }
 
     sendToGame(gameName) {

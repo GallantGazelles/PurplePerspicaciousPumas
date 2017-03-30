@@ -3,7 +3,7 @@ import React from 'react';
 import Rules from './Rules.jsx';
 import { Col, PageHeader, ListGroup, ListGroupItem } from 'react-bootstrap';
 
-const WaitingRoom = (props) => (
+export default (props) => (
   <Col id='waiting-room'>
   <PageHeader>{props.game.gameName} <small>Waiting Room</small></PageHeader>
     <h3>Number of Players: {props.game.players.length} / 4</h3>
@@ -15,11 +15,8 @@ const WaitingRoom = (props) => (
       </ListGroup>
     </Col>
     <Col sm={6} smOffset={3}>
+      <button onClick={() => { props.leaveGame(); props.sendToLobby(); }}>Leave Game</button>
       <Rules/>
     </Col>
   </Col>
 )
-
-export default WaitingRoom;
-
-

@@ -5,28 +5,30 @@ import GameWinner from './PlayingGameComponents/GameWinner.jsx';
 import RoundSummary from './RoundSummary.jsx';
 import { Col, PageHeader, Button } from 'react-bootstrap';
 
-const EndOfGame = (props) => {
+const EndOfGame = ({game, sendToLobby}) => {
+  // Reverse order of rounds and judges
+  let rounds = game.rounds.slice().reverse();
+  let judges = game.players.slice().reverse();
+  console.log('Rounds and judges', rounds, judges);
+
 	return (
 		<Col id="end-of-game">
 		  <PageHeader>Game Over</PageHeader>
 	    <Col sm={6} smOffset={3}>
 	      <h4>Final Score</h4>
-	      <Score game={props.game}/>
+	      <Score game={game}/>
         <br />
-        <GameWinner game={props.game}/>
+        <GameWinner game={game}/>
 			  <br />
-			  <RoundSummary round={props.game.rounds[3]} judge={props.game.players[3]}/>
+			  <RoundSummary round={game.rounds[3]} judge={game.players[3]}/>
 			  <br />
-			  <RoundSummary round={props.game.rounds[2]} judge={props.game.players[2]}/>
+			  <RoundSummary round={game.rounds[2]} judge={game.players[2]}/>
 			  <br />
-			  <RoundSummary round={props.game.rounds[1]} judge={props.game.players[1]}/>
+			  <RoundSummary round={game.rounds[1]} judge={game.players[1]}/>
 			  <br />
-			  <RoundSummary round={props.game.rounds[0]} judge={props.game.players[0]}/>
+			  <RoundSummary round={game.rounds[0]} judge={game.players[0]}/>
 			  <br />
-        <Button onClick={() => {
-            props.sendToLobby()
-          }
-        }>
+        <Button onClick={sendToLobby()}>
           Return to Lobby
         </Button>
 	    </Col>
