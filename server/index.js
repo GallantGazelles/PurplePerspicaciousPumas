@@ -7,6 +7,7 @@ var LocalStrategy = require('passport-local').Strategy;
 var cookieParser = require('cookie-parser');
 var session = require('express-session');
 var queries = require('../db/db-queries.js');
+var UserQueries = require('../db/db-usermodels-queries.js');
 var helpers = require('./helpers.js');
 
 var User = models.userModel;
@@ -31,6 +32,8 @@ passport.use(new LocalStrategy(User.authenticate()));
 passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
 
+
+// ROUTES
 app.post('/signup', function (req, res) {
   User.register(new User({username: req.body.username, email: req.body.email}), req.body.password, function (err, user) {
     if (err) {
@@ -47,6 +50,7 @@ app.post('/signup', function (req, res) {
 
 app.post('/login', passport.authenticate('local'), function(req, res) {
   console.log('in login request');
+  console.log('request session:', req.session);
   res.status(201).send('success')
 })
 
@@ -56,7 +60,7 @@ app.get('/test', passport.authenticate('local'), function(req, res) {
 
 app.get('/games', function(req, res) {
   var promise = Game.find({}).exec();
-
+  console.log('games session: ', req.session);
   promise.then(function(games) {
     var sortedGames = [];
     var gameNameFirstWords = games.map(function(game){
@@ -72,51 +76,46 @@ app.get('/games', function(req, res) {
   })
 });
 
-//add to friendlist:
 app.post('/friends', function(req, res) {
-   console.log(req.body);
-   //if user typed in the friend name
-     //check if the name typed in exist in the database
-     //if yes, check if it's the user itself
-       //if not self, add to friendlist
-     //if no, send back an error code to front-end
    if (req.body.typedIn) {
     UserQueries.selectUserByName(req.body.friend)
-    .then((data) => {
-      console.log('this is the selected data: ', data);
-      if (!data) {
-        //
-        res.status(400).send('This person doesn\'t exist!');
-      } else {
-        //
-        UserQueries.addFriendToList(req.body.friend, req.body.username)
-        .then(() => {
-          res.status(201).send('successfully added friend');
-        })
-        .catch((err) => {
-          res.status(400).send('Uh oh, there\'s an error adding friend');
-        });
-      }
-    })
-    .catch(err => {
-      res.status(400).send('Uh oh, an error occured!');
-    });
+      .then((data) => {
+        if (!data) {
+          res.status(400).send('This person doesn\'t exist!');
+        } else {
+          UserQueries.addFriendToList(req.body.friend, req.body.username)
+            .then(data => {
+              res.status(201).send(data.value.friendList);
+            })
+          .catch((err) => {
+            res.status(400).send('Uh oh, there\'s an error adding friend');
+          });
+        }
+      })
+      .catch(err => {
+        res.status(400).send('Uh oh, an error occured!');
+      });
    } else {
-
     UserQueries.addFriendToList(req.body.friend, req.body.username)
-    .then(() => {
-      res.status(201).send('successfully added friend');
-    })
-    .catch((err) => {
-      res.status(400).send('Uh oh, there\'s an error adding friend');
-    });
+      .then(data => {
+        res.status(201).send(data.value.friendList);
+      })
+      .catch((err) => {
+        res.status(400).send('Uh oh, there\'s an error adding friend');
+      });
    }
-   // UserQueries.addFriendToList(req.body.friend, req.body.username);
+});
+
+app.get('/logout', function(req, res) {
+  console.log('logging out');
+  req.logout();
+  console.log('new session object: ', req.session);
+  res.status(200).send('successfully logged out');
 });
 
 app.post('/games', function(req, res) {
   var gameInstance = req.body;
-  console.log(req.body);
+  console.log('Games post req', req.body);
   console.log('Game Instance: ', gameInstance);
 
   helpers.addPrompts(gameInstance);
@@ -145,7 +144,12 @@ app.get('/game', function(req, res) {
 
 app.get('/username', function(req, res) {
   var user = req.session.passport.user;
-  res.status(200).send(user);
+  // Make request to db to get this user's friends
+  UserQueries.selectUserByName(user)
+    .then(({username, friendList}) => {
+      console.log('Results', username, friendList);
+      res.status(200).send({username, friendList});
+    })
 });
 
 
@@ -153,7 +157,7 @@ var server = app.listen(port, function() {
   console.log('App is listening on port: ', port);
 });
 
-//SOCKETS
+// SOCKETS
 var io = require('socket.io')(server);
 
 
@@ -161,6 +165,17 @@ const Games = {};
 const Sockets = {};
 const Rooms = {};
 let userSockets = {};
+
+// FIX: Covert to one object
+// {
+//   'craig': {
+//     socketId: 1231231,
+//     room: 'lobby'
+//   }
+// }
+// Overwrite socketId on reconnect
+
+const allUsers = {};
 const allConnectedUsers = {};
 const connectedLobbyUsers = {};
 let lobbyUsers = [];
@@ -188,15 +203,19 @@ var getAllGames = function(callback) {
 
 
 io.on('connection', (socket) => {
-  console.log(`A user connected to the socket`);
+  console.log(`A user connected: ${socket.id}`);
 
-  // DISCONNECT
+  // DISCONNECT OR LOGOUT
   socket.on('disconnect', data => {
-    console.log('Someone disconnected!');
-    let username = userSockets[socket.id];
-    delete userSockets[socket.id];
-    lobbyUsers = lobbyUsers.filter(user => user !== username);
-    io.to('lobby').emit('user joined lobby', lobbyUsers);
+    console.log(`Someone disconnected! ${socket.id}`);
+
+    for (let user in allUsers) {
+      if (allUsers[user].socketId === socket.id) {
+        delete allUsers[user];
+      }
+    }
+
+    io.emit('ALL_USERS_UPDATED', allUsers);
   })
 
   // LOBBY
@@ -204,9 +223,13 @@ io.on('connection', (socket) => {
     var username = data.username;
 
     // Overwrite if same user connected from a new socket
+    if (allUsers[username]) {
+      Object.assign(allUsers[username], {socketId: socket.id, room: 'lobby'});
+    } else {
+      allUsers[username] = {socketId: socket.id, room: 'lobby'};
+    }
+
     allConnectedUsers[username] = connectedLobbyUsers[username] = socket.id;
-    console.log('All users', allConnectedUsers);
-    console.log('Users in lobby', connectedLobbyUsers);
 
     socket.join('lobby', console.log(`${username} has joined the lobby!`));
 
@@ -214,37 +237,39 @@ io.on('connection', (socket) => {
 
     // Send current chat messages to any socket in the room
     io.to('lobby').emit('chat updated', lobbyChatMessages, console.log('Lobby users: ', lobbyUsers));
-    io.to('lobby').emit('user joined lobby', lobbyUsers, console.log('it fired'));
+    io.to('lobby').emit('user joined lobby', lobbyUsers);
+    io.emit('ALL_USERS_UPDATED', allUsers);
 
     getAllGames((games) => {
-      console.log('Sending games to individual socket');
+      console.log('Sending games to user');
       io.to(socket.id).emit('get games', {games: games})
     });
   });
 
   socket.on('leave lobby', data => {
-    console.log('Someone left the lobby', data.username);
+    console.log(`${data.username} left the lobby!`);
     socket.leave('lobby');
 
-    console.log('Lobby before', lobbyUsers);
     delete connectedLobbyUsers[data.username];
+    delete allUsers[data.username];
+
     lobbyUsers = Object.keys(connectedLobbyUsers)
-
-
+    console.log('lobby users is now: ', lobbyUsers, allUsers);
+    io.emit('ALL_USERS_UPDATED', allUsers);
     io.to('lobby').emit('user joined lobby', lobbyUsers);
-    console.log('Lobby after someone left is', lobbyUsers);
   });
 
   socket.on('message', (data) => {
-    console.log('Message received: ', data);
     lobbyChatMessages.push(data);
-    console.log('Current chat: ', lobbyChatMessages);
     io.to('lobby').emit('chat updated', lobbyChatMessages);
   });
 
   // CHATS
   socket.on('game chat', data => {
-    console.log('Game message received', data);
+    let gameName = data.gameName;
+    let chat = Games[gameName].chat;
+    chat.push(data);
+    io.to(gameName).emit('game chat updated', chat);
   })
 
   // GAMES
@@ -254,6 +279,8 @@ io.on('connection', (socket) => {
 
     console.log(`${username} is joining room: ${gameName}`);
     socket.join(gameName);
+    allUsers[username] = Object.assign({room: gameName});
+    io.emit('ALL_USERS_UPDATED', allUsers);
 
     Sockets[socket] = gameName;
     console.log(`Sockets: ${Sockets[socket]}`);
@@ -272,6 +299,14 @@ io.on('connection', (socket) => {
       var { players, gameStage } = game.value;
       console.log('DATA!', players.length, gameStage);
 
+      Games[gameName] = {
+        time: null,
+        timer: null,
+        chat: []
+      }
+
+      io.to(gameName).emit('game chat updated', Games[gameName].chat);
+
       if (players.length === 4 && gameStage === 'waiting') {
         queries.setGameInstanceGameStageToPlaying(gameName)
           .then(game => {
@@ -285,11 +320,6 @@ io.on('connection', (socket) => {
 /*************************************************************
 LOGIC TO CREATE COUNTDOWN BEFORE GAME STARTS
 **************************************************************/
-            Games[gameName] = {
-              time: null,
-              timer: null,
-              chat: []
-            }
             Games[gameName].time = 5;
             Games[gameName].timer = setInterval( () => {
               io.to(gameName).emit('timer',{time: Games[gameName].time--})
@@ -302,10 +332,6 @@ LOGIC TO CREATE COUNTDOWN BEFORE GAME STARTS
                 }, 1500)
               }
             }, 1000)
-/*************************************************************
-THIS WORKS FINE!
-**************************************************************/
-
           });
       } else {
         console.log('Joining Game: ', game.value);
@@ -380,9 +406,13 @@ ROUND STARTING TIMER
         }
       })
       .then(game => {
+        console.log('players in game destroyed ', game.value.players.length);
         if (game.value.players.length > 0) {
           io.to(gameName).emit('update waiting room', game.value)
           getAllGames((games) => {
+
+            console.log(`${username} is leaving room: ${gameName}`);
+            socket.leave(gameName);
             console.log('Sending games to individual socket');
             io.to(socket.id).emit('get games', {games: games})
           });
@@ -391,13 +421,17 @@ ROUND STARTING TIMER
           queries.destroyGameInstance(gameName)
             .then(
               getAllGames(games => {
+                console.log(`${username} is leaving room: ${gameName}`);
+                socket.leave(gameName);
                 console.log('Sending games to lobby');
                 io.to('lobby').emit('update games', {games: games})
               })
-            ).catch(err => console.log(err));
+            )
+            .catch(err => console.log(err));
         }
-        console.log(`${username} is leaving room: ${gameName}`);
-        socket.leave(gameName);
+
+        // console.log(`${username} is leaving room: ${gameName}`);
+        // socket.leave(gameName);
       })
       .catch(error => console.log(error))
   });

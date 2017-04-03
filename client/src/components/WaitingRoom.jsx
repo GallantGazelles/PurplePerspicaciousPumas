@@ -16,7 +16,7 @@ export default (props) => (
       </ListGroup>
     </Col>
     <Col sm={6} smOffset={3}>
-      <button onClick={() => { props.leaveGame(); props.sendToLobby(); }}>Leave Game</button>
+      <button onClick={() => { if (props.leaveGame()) { props.sendToLobby(); } }}>Leave Game</button>
       <Rules/>
     </Col>
   </Col>

@@ -43,71 +43,71 @@ var userInstanceModel = mongoose.model('userModel', userSchema);
 
 //COMMENT THIS OUT DURING GAME TESTING
 //Clearout database
-var gameCollection = db.collection('gameinstancemodels');
-gameCollection.remove({});
+// var gameCollection = db.collection('gameinstancemodels');
+// gameCollection.remove({});
 
 
 
-var gameOne = new gameInstanceModel(dummyGames.gameOne)
+// var gameOne = new gameInstanceModel(dummyGames.gameOne)
 
-gameOne.save(function (err, game) {
-	if (err) {
-		console.log('error', err);
-		return
-	} else {
-	// console.log('gameAdded', game);
-	}
-});
+// gameOne.save(function (err, game) {
+// 	if (err) {
+// 		console.log('error', err);
+// 		return
+// 	} else {
+// 	// console.log('gameAdded', game);
+// 	}
+// });
 
 
-var gameTwo = new gameInstanceModel(dummyGames.gameTwo)
+// var gameTwo = new gameInstanceModel(dummyGames.gameTwo)
 
-gameTwo.save(function (err, game) {
-	if (err) {
-		console.log('error', err);
-		return
-	} else {
-	// console.log('gameAdded', game);
-	}
-});
+// gameTwo.save(function (err, game) {
+// 	if (err) {
+// 		console.log('error', err);
+// 		return
+// 	} else {
+// 	// console.log('gameAdded', game);
+// 	}
+// });
 
-var gameThree = new gameInstanceModel(dummyGames.gameThree)
+// var gameThree = new gameInstanceModel(dummyGames.gameThree)
 
-gameThree.save(function (err, game) {
-	if (err) {
-		console.log('err', err);
-		return
-	} else {
-	// console.log('gameAdded', game);
-	}
-});
+// gameThree.save(function (err, game) {
+// 	if (err) {
+// 		console.log('err', err);
+// 		return
+// 	} else {
+// 	// console.log('gameAdded', game);
+// 	}
+// });
 
-var gameFour = new gameInstanceModel(dummyGames.gameFour)
+// var gameFour = new gameInstanceModel(dummyGames.gameFour)
 
-gameFour.save(function (err, game) {
-	if (err) {
-		console.log('err', err);
-		return
-	} else {
-	// console.log('gameAdded', game);
-	}
-});
+// gameFour.save(function (err, game) {
+// 	if (err) {
+// 		console.log('err', err);
+// 		return
+// 	} else {
+// 	// console.log('gameAdded', game);
+// 	}
+// });
 
-for (let game in dummyGamePlayThrough) {
-	let newGame = new gameInstanceModel(dummyGamePlayThrough[game]);
-	newGame.save(function (err, game) {
-		if (err) {
-			console.log('err', err);
-			return
-		} else {
-		// console.log('gameAdded', game);
-		}
-	});
-}
+// for (let game in dummyGamePlayThrough) {
+// 	let newGame = new gameInstanceModel(dummyGamePlayThrough[game]);
+// 	newGame.save(function (err, game) {
+// 		if (err) {
+// 			console.log('err', err);
+// 			return
+// 		} else {
+// 		// console.log('gameAdded', game);
+// 		}
+// 	});
+// }
 //Comment this code back in to have access to the dummy data on your local machine
-// it was commented out for depoloyment. 
+// it was commented out for depoloyment.
 
-//Clearout database 
+//Clearout database
 // var collection = db.collection('gameinstancemodels');
 // collection.remove({});
 

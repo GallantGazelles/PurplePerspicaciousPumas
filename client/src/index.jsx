@@ -13,20 +13,24 @@ const ioSocket = io();
 class App extends Component {
   constructor(props){
     super(props);
-    this.state = {}
+    this.state = {};
 
     this.sendToGame = this.sendToGame.bind(this);
     this.sendToLobby = this.sendToLobby.bind(this);
+    this.sendToHomePage = this.sendToHomePage.bind(this);
   }
 
-  sendToLobby(disconnectTimeOut) {
-    console.log('Sending to lobby');
+  sendToLobby(username) {
     hashHistory.push('/lobby');
   }
 
   sendToGame(gameName, username) {
-    ioSocket.emit('leave lobby', {id: ioSocket.id, username: username});
+    // ioSocket.emit('leave lobby', {id: ioSocket.id, username: username});
     hashHistory.push(/game/ + gameName);
+  }
+
+  sendToHomePage() {
+    hashHistory.push('/');
   }
 
   render() {
@@ -42,12 +46,7 @@ class App extends Component {
             component={Lobby}
             ioSocket={ioSocket}
             sendToGame={this.sendToGame}
-            disconnectTimeOut={this.state.disconnectTimeOut} />
-          <Route path="/lobby/:disconnectTimeOut"
-            component={Lobby}
-            ioSocket={ioSocket}
-            sendToGame={this.sendToGame}
-            disconnectTimeOut={this.state.disconnectTimeOut} />
+            sendToHomePage={this.sendToHomePage} />
           <Route path="/game/:gamename"
             component={Game}
             ioSocket={ioSocket}

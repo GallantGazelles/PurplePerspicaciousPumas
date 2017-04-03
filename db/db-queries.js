@@ -14,7 +14,6 @@ module.exports.destroyGameInstance = function(gameName) {
 module.exports.addPlayerToGameInstance = function(gameName, username) {
 
   return games.findOneAndUpdate({gameName: gameName}, {$push: {players: username}}, {returnOriginal: false});
-  // return games.update({gameName: gameName}, {$push: {players: username} });
 };
 
 module.exports.removePlayerFromGameInstance = function(gameName, username) {
